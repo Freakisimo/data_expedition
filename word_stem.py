@@ -9,32 +9,36 @@ db = pymongo.MongoClient().opendataday
 
 # print stemmer.stemWords(['camionero','camiones','camion','camionera'])
 
-def dict_generator(indict, pre=None):
-    pre = pre[:] if pre else []
-    if isinstance(indict, dict):
-        for key, value in indict.items():
-            if isinstance(value, dict):
-                for d in dict_generator(value, [key] + pre):
-                    yield d
-            elif isinstance(value, list) or isinstance(value, tuple):
-                for v in value:
-                    for d in dict_generator(v, [key] + pre):
-                        yield d
+def is_list(item):
+    return isinstance(item, list) or isinstance(item, tuple)
+
+def is_dict(item):
+    return isinstance(item, dict)
+
+
+def depth_structure(doc, with_value=True, current=[], row=[]):
+    if is_dict(doc):
+        for k,v in doc.items():
+            current.append(k)
+            if is_dict(v):
+                for d in depth_structure(v, with_value, current):
+                    pass
+            elif is_list(v):
+                for i in v:
+                    for j in depth_structure(i, with_value, current):
+                        pass
             else:
-                yield pre + [key, value]
+                if with_value:
+                    current.append(v)
+                row.append(current)
+                current = []
     else:
-        yield indict
-
-def depth_structure(doc, row=[], current=[]):
-    if isinstance(doc, dict):
-        for k,v in doc.items:
-            print kv
-
+        current.append(doc)
+    return row
 
 def steam_odd_collection():
-    doc = db.contrataciones.find().limit(1000)
-    doc_structure = set(gen_to_list(dict_generator(x)) for x in doc)
-    print list(doc_structure)
+    doc = db.contrataciones.find().limit(3)
+    doc_structure = [depth_structure(x) for x in list(doc)]
     # contracts_list = []
     # for row in doc:
     #     for release in row["records"][0]["releases"]:
